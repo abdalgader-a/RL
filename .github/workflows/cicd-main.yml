@@ -164,7 +164,7 @@ jobs:
     name: Doc Tests
     needs: [build-container, pre-flight]
     uses: ./.github/workflows/_run_test.yml
-    if: ${{ needs.pre-flight.outputs.test_level =~ ^(docs|L0|L1|L2)$ }}
+    if: ${{ contains('docs L0 L1 L2', needs.pre-flight.outputs.test_level) }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     with:
@@ -178,7 +178,7 @@ jobs:
     name: Unit Tests
     needs: [build-container, pre-flight]
     uses: ./.github/workflows/_run_test.yml
-    if: ${{ needs.pre-flight.outputs.test_level =~ ^(L0|L1|L2)$ }}
+    if: ${{ contains('L0 L1 L2', needs.pre-flight.outputs.test_level) }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     with:
@@ -192,7 +192,7 @@ jobs:
     name: Functional Tests
     needs: [build-container, pre-flight, unit-tests]
     uses: ./.github/workflows/_run_test.yml
-    if: ${{ needs.pre-flight.outputs.test_level =~ ^(L1|L2)$ }}
+    if: ${{ contains('L1 L2', needs.pre-flight.outputs.test_level) }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
     with:
