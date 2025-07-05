@@ -186,7 +186,7 @@ jobs:
       TIMEOUT: 180
       TEST_SCRIPT: |
         cd /opt/nemo-rl
-        uv run --no-sync bash -x ./tests/run_unit.sh --cov=nemo_rl --cov-report=term --cov-report=json
+        uv run --no-sync bash -x ./tests/run_unit.sh --cov=nemo_rl --cov-report=term --cov-report=json --durations=30 --durations-min=0.1
 
   functional-tests:
     name: Functional Tests
