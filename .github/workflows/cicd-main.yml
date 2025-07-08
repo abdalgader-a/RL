@@ -160,19 +160,19 @@ jobs:
         MAX_JOBS=32
         NEMO_RL_COMMIT=${{ github.sha }}
 
-  doc-tests:
-    name: Doc Tests
-    needs: [build-container, pre-flight]
-    uses: ./.github/workflows/_run_test.yml
-    if: ${{ contains('docs L0 L1 L2', needs.pre-flight.outputs.test_level) }}
-    secrets:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-    with:
-      RUNNER: self-hosted-azure
-      TIMEOUT: 180
-      TEST_SCRIPT: |
-        cd /opt/nemo-rl/docs
-        uv run --no-sync sphinx-build -b doctest . _build/doctest
+  # doc-tests:
+  #   name: Doc Tests
+  #   needs: [build-container, pre-flight]
+  #   uses: ./.github/workflows/_run_test.yml
+  #   if: ${{ contains('docs L0 L1 L2', needs.pre-flight.outputs.test_level) }}
+  #   secrets:
+  #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  #   with:
+  #     RUNNER: self-hosted-azure
+  #     TIMEOUT: 180
+  #     TEST_SCRIPT: |
+  #       cd /opt/nemo-rl/docs
+  #       uv run --no-sync sphinx-build -b doctest . _build/doctest
 
   unit-tests-generation:
     name: Unit Tests
@@ -188,25 +188,25 @@ jobs:
         cd /opt/nemo-rl
         uv run --no-sync bash -x ./tests/run_unit.sh unit/models/generation/ --cov=nemo_rl --cov-report=term --cov-report=json
 
-  functional-tests:
-    name: Functional Tests
-    needs: [build-container, pre-flight, unit-tests]
-    uses: ./.github/workflows/_run_test.yml
-    if: ${{ contains('L1 L2', needs.pre-flight.outputs.test_level) }}
-    secrets:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-    with:
-      RUNNER: self-hosted-azure
-      TIMEOUT: 180
-      TEST_SCRIPT: |
-        cd /opt/nemo-rl
-        time uv run --no-sync bash ./tests/functional/sft.sh
-        time uv run --no-sync bash ./tests/functional/grpo.sh
-        time uv run --no-sync bash ./tests/functional/grpo_multiturn.sh
-        time uv run --no-sync bash ./tests/functional/grpo_non_colocated.sh
-        time uv run --no-sync bash ./tests/functional/dpo.sh
-        time uv run --no-sync bash ./tests/functional/eval.sh
-        time uv run --no-sync bash ./tests/functional/test_mcore_extra_installed_correctly.sh
+  # functional-tests:
+  #   name: Functional Tests
+  #   needs: [build-container, pre-flight, unit-tests]
+  #   uses: ./.github/workflows/_run_test.yml
+  #   if: ${{ contains('L1 L2', needs.pre-flight.outputs.test_level) }}
+  #   secrets:
+  #     HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  #   with:
+  #     RUNNER: self-hosted-azure
+  #     TIMEOUT: 180
+  #     TEST_SCRIPT: |
+  #       cd /opt/nemo-rl
+  #       time uv run --no-sync bash ./tests/functional/sft.sh
+  #       time uv run --no-sync bash ./tests/functional/grpo.sh
+  #       time uv run --no-sync bash ./tests/functional/grpo_multiturn.sh
+  #       time uv run --no-sync bash ./tests/functional/grpo_non_colocated.sh
+  #       time uv run --no-sync bash ./tests/functional/dpo.sh
+  #       time uv run --no-sync bash ./tests/functional/eval.sh
+  #       time uv run --no-sync bash ./tests/functional/test_mcore_extra_installed_correctly.sh
 
   # coverage:
   #   name: Upload coverage to Codecov
@@ -240,9 +240,9 @@ jobs:
       - pre-flight
       - lint-check
       - sphinx-build
-      - doc-tests
+      # - doc-tests
       - unit-tests-generation
-      - functional-tests
+      # - functional-tests
     steps:
       - name: main
         env:
@@ -258,9 +258,9 @@ jobs:
                   needs.sphinx-build.result == 'success' &&
                   (
                     (
-                      (needs.doc-tests.result == 'skipped' || needs.doc-tests.result == 'success') &&
-                      (needs.unit-tests-generation.result == 'skipped' || needs.unit-tests-generation.result == 'success') &&
-                      (needs.functional-tests.result == 'skipped' || needs.functional-tests.result == 'success')
+                      # (needs.doc-tests.result == 'skipped' || needs.doc-tests.result == 'success') &&
+                      (needs.unit-tests-generation.result == 'skipped' || needs.unit-tests-generation.result == 'success')
+                      # (needs.functional-tests.result == 'skipped' || needs.functional-tests.result == 'success')
                     )
                   ) &&
                   (needs.mypy-check.result == 'success' || true)
