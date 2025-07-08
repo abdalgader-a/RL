@@ -16,4 +16,4 @@
 set -xeuo pipefail # Exit immediately if a command exits with a non-zero status
 
 cd /opt/nemo-rl
-COVERAGE_ENABLED=true uv run --no-sync bash -x ./tests/run_unit.sh unit/models/policy/
+uv run --no-sync bash -x ./tests/run_unit.sh unit/models/policy/ --cov=nemo_rl --cov-data-file=.coverage --cov-report=term --cov-report=json

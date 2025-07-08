@@ -231,8 +231,8 @@ runs:
       run: |
         docker exec nemo_container_${{ github.run_id }} coverage combine || true
         docker exec nemo_container_${{ github.run_id }} coverage xml
-        docker cp nemo_container_${{ github.run_id }}:/opt/nemo-rl/.coverage .coverage
-        docker cp nemo_container_${{ github.run_id }}:/opt/nemo-rl/coverage.xml coverage.xml
+        docker cp nemo_container_${{ github.run_id }}:/opt/nemo-rl/tests/.coverage .coverage
+        docker cp nemo_container_${{ github.run_id }}:/opt/nemo-rl/tests/coverage.json coverage.json
 
         coverage_report=coverage-${{ steps.create.outputs.coverage-prefix }}-${{ github.run_id }}-$(uuidgen)
         echo "coverage_report=$coverage_report" >> "$GITHUB_OUTPUT"
@@ -262,7 +262,7 @@ runs:
       with:
         name: ${{ steps.check.outputs.coverage_report }}
         path: |
-          coverage.xml
+          coverage.json
           .coverage
         include-hidden-files: true
 
