@@ -54,14 +54,9 @@ inputs:
     description: "Has Azure credentials"
     required: false
     default: "false"
-secrets:
-  HF_TOKEN:
-    required: true
 
 runs:
   using: "composite"
-  env:
-    HF_TOKEN: ${{ secrets.HF_TOKEN }}
   steps:
     - name: Install Azure CLI
       if: ${{ inputs.has-azure-credentials == 'true' }}

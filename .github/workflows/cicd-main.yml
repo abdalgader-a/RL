@@ -228,14 +228,14 @@ jobs:
         uses: actions/checkout@v4
       - name: main
         uses: ./.github/actions/test-template
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         with:
           runner: ${{ runner.name }}
           script: ${{ matrix.script }}
           timeout: ${{ matrix.timeout || 10 }}
           is_unit_test: "true"
           cpu-only: ${{ matrix.cpu-only || false }}
-        secrets:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
   # cicd-e2e-tests:
   #   strategy:
