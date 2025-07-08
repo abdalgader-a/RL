@@ -32,7 +32,16 @@ export PYTHONPATH=$(realpath ${SCRIPT_DIR}/..):${PYTHONPATH:-}
 
 # Run unit tests
 echo "Running unit tests..."
-if ! pytest "$@"; then
+if [[ $COVERAGE_ENABLED == "true" ]]; then
+    echo "Running with coverage..."
+    TEST_CMD="coverage run -a --data-file=/opt/nemo-rl/.coverage --source=/opt/nemo-rl/ pytest"
+else
+    echo "Running without coverage..."
+    TEST_CMD="pytest"
+fi
+
+# Run the test command
+if ! $TEST_CMD "$@"; then
     echo "[ERROR]: Unit tests failed."
     exit 1
 fi
