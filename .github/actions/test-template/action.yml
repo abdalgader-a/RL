@@ -158,38 +158,26 @@ runs:
         COVERAGE_PREFIX=$([[ "${{ inputs.is_doc_test }}" == "true" ]] && echo "doc-test" || ([[ "${{ inputs.is_unit_test }}" == "true" ]] && echo "unit-test" || echo "e2e"))
         echo "coverage-prefix=$COVERAGE_PREFIX" | tee -a "$GITHUB_OUTPUT"
 
-        cmd=$(cat <<RUN_TEST_EOF
-        #!/bin/bash
-
-        (
-          set -e
-
-          docker run --rm -u root --runtime=nvidia --gpus all \
-            --shm-size=64g \
-            --env TRANSFORMERS_OFFLINE=0 \
-            --env HYDRA_FULL_ERROR=1 \
-            --env HF_HOME=/home/TestData/nemo-rl/hf_home \
-            --env HF_DATASETS_CACHE=/home/TestData/nemo-rl/hf_datasets_cache \
-            --env NEMO_RL_REPO_DIR=/opt/nemo-rl \
-            --env HF_TOKEN \
-            --volume $(pwd)/${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl:/opt/nemo-rl \
-            --volume $GITHUB_ACTION_DIR:$GITHUB_ACTION_DIR \
-            --volume /mnt/datadrive/TestData/nemo-rl/datasets:/opt/nemo-rl/datasets:ro \
-            --volume /mnt/datadrive/TestData/nemo-rl/checkpoints:/home/TestData/nemo-rl/checkpoints:ro \
-            --volume /mnt/datadrive/TestData/nemo-rl/hf_home/hub:/home/TestData/nemo-rl/hf_home/hub \
-            --volume /mnt/datadrive/TestData/nemo-rl/hf_datasets_cache:/home/TestData/nemo-rl/hf_datasets_cache \
-            nemoci.azurecr.io/nemo_rl_container:${{ github.run_id }} bash -c '\
-              git config --global --add safe.directory /opt/nemo-rl
-              # This is needed since we create virtualenvs in the workspace, so this allows it to be cleaned up if necessary
-              umask 000
-              bash tests/${{ inputs.is_doc_test == 'true' && 'docs' || (inputs.is_unit_test == 'true' && 'unit' || 'functional') }}/${{ inputs.script }}.sh && \
-              echo "Finished successfully." || echo "Did not finish."'
-        ) 2>&1 | tee err.log
-
-        RUN_TEST_EOF
-        )
-
-        $cmd
+        docker run --rm -u root --runtime=nvidia --gpus all \
+          --shm-size=64g \
+          --env TRANSFORMERS_OFFLINE=0 \
+          --env HYDRA_FULL_ERROR=1 \
+          --env HF_HOME=/home/TestData/nemo-rl/hf_home \
+          --env HF_DATASETS_CACHE=/home/TestData/nemo-rl/hf_datasets_cache \
+          --env NEMO_RL_REPO_DIR=/opt/nemo-rl \
+          --env HF_TOKEN \
+          --volume $(pwd)/${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl:/opt/nemo-rl \
+          --volume $GITHUB_ACTION_DIR:$GITHUB_ACTION_DIR \
+          --volume /mnt/datadrive/TestData/nemo-rl/datasets:/opt/nemo-rl/datasets:ro \
+          --volume /mnt/datadrive/TestData/nemo-rl/checkpoints:/home/TestData/nemo-rl/checkpoints:ro \
+          --volume /mnt/datadrive/TestData/nemo-rl/hf_home/hub:/home/TestData/nemo-rl/hf_home/hub \
+          --volume /mnt/datadrive/TestData/nemo-rl/hf_datasets_cache:/home/TestData/nemo-rl/hf_datasets_cache \
+          nemoci.azurecr.io/nemo_rl_container:${{ github.run_id }} bash -eux -o pipefail -c '\
+            git config --global --add safe.directory /opt/nemo-rl
+            # This is needed since we create virtualenvs in the workspace, so this allows it to be cleaned up if necessary
+            umask 000
+            bash tests/${{ inputs.is_doc_test == 'true' && 'docs' || (inputs.is_unit_test == 'true' && 'unit' || 'functional') }}/${{ inputs.script }}.sh && \
+            echo "Finished successfully." || echo "Did not finish."' 2>&1 | tee err.log
 
     - name: Check result
       id: check
