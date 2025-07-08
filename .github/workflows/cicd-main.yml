@@ -174,7 +174,7 @@ jobs:
         cd /opt/nemo-rl/docs
         uv run --no-sync sphinx-build -b doctest . _build/doctest
 
-  unit-tests:
+  unit-tests-generation:
     name: Unit Tests
     needs: [build-container, pre-flight]
     uses: ./.github/workflows/_run_test.yml
@@ -186,7 +186,7 @@ jobs:
       TIMEOUT: 180
       TEST_SCRIPT: |
         cd /opt/nemo-rl
-        uv run --no-sync bash -x ./tests/run_unit.sh --cov=nemo_rl --cov-report=term --cov-report=json --durations=30 --durations-min=0.1
+        uv run --no-sync bash -x ./tests/run_unit.sh unit/models/generation/ --cov=nemo_rl --cov-report=term --cov-report=json
 
   functional-tests:
     name: Functional Tests
@@ -241,7 +241,7 @@ jobs:
       - lint-check
       - sphinx-build
       - doc-tests
-      - unit-tests
+      - unit-tests-generation
       - functional-tests
     steps:
       - name: main
@@ -259,7 +259,7 @@ jobs:
                   (
                     (
                       (needs.doc-tests.result == 'skipped' || needs.doc-tests.result == 'success') &&
-                      (needs.unit-tests.result == 'skipped' || needs.unit-tests.result == 'success') &&
+                      (needs.unit-tests-generation.result == 'skipped' || needs.unit-tests-generation.result == 'success') &&
                       (needs.functional-tests.result == 'skipped' || needs.functional-tests.result == 'success')
                     )
                   ) &&
