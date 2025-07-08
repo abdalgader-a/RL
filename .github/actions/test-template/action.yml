@@ -141,11 +141,19 @@ runs:
       run: |
         docker pull nemoci.azurecr.io/${{ inputs.image }}:${{ github.run_id }}
 
-    - name: Checkout repository
+    - name: Create UUID
+      id: uuid
+      shell: bash
+      run: |
+        echo "id=$(uuidgen)" >> "$GITHUB_OUTPUT"
+
+    - name: Checkout NeMo
       uses: actions/checkout@v2
+      env:
+        DIR: ${{ github.run_id }}
       with:
-        path: nemo-rl
         submodules: 'recursive'
+        path: ${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl
 
     - name: Start container
       shell: bash
@@ -168,7 +176,7 @@ runs:
           --env HF_DATASETS_CACHE=/home/TestData/nemo-rl/hf_datasets_cache \
           --env NEMO_RL_REPO_DIR=/opt/nemo-rl \
           --env HF_TOKEN \
-          --volume $GITHUB_WORKSPACE/nemo-rl:/opt/nemo-rl \
+          --volume ${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl:/opt/nemo-rl \
           --volume $GITHUB_ACTION_DIR:$GITHUB_ACTION_DIR \
           --volume /mnt/datadrive/TestData/nemo-rl/datasets:/opt/nemo-rl/datasets:ro \
           --volume /mnt/datadrive/TestData/nemo-rl/checkpoints:/home/TestData/nemo-rl/checkpoints:ro \
@@ -257,3 +265,11 @@ runs:
           coverage.xml
           .coverage
         include-hidden-files: true
+
+    - name: Container shutdown
+      if: always()
+      shell: bash
+      run: |
+        docker exec nemo_container_${{ github.run_id }} bash -c "chown -R $(id -u):$(id -g) /opt/nemo-rl"
+        rm -rf $(pwd)/${{ github.run_id }}/${{steps.uuid.outputs.id }} || true
+        docker container rm -f nemo_container_${{ github.run_id }} || true
