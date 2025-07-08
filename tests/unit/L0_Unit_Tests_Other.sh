@@ -16,4 +16,7 @@
 set -xeuo pipefail # Exit immediately if a command exits with a non-zero status
 
 cd /opt/nemo-rl
-coverage run -a --data-file=/opt/nemo-rl/.coverage --source=/opt/nemo-rl/ ./tests/run_unit.sh --ignore=unit/models/generation/ --ignore=unit/models/policy/
+coverage run -a --data-file=/opt/nemo-rl/.coverage --source=/opt/nemo-rl/ -c "
+import subprocess
+subprocess.run(['bash', '-x', './tests/run_unit.sh', '--ignore=unit/models/generation/', '--ignore=unit/models/policy/'])
+"

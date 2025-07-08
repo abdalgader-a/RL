@@ -270,6 +270,6 @@ runs:
       if: always()
       shell: bash
       run: |
-        docker exec nemo_container_${{ github.run_id }} bash -c "chown -R $(id -u):$(id -g) /opt/nemo-rl"
+        docker exec nemo_container_${{ github.run_id }} bash -c "find /opt/nemo-rl -path '/opt/nemo-rl/datasets' -prune -o -exec chown $(id -u):$(id -g) {} +"
         rm -rf $(pwd)/${{ github.run_id }}/${{steps.uuid.outputs.id }} || true
         docker container rm -f nemo_container_${{ github.run_id }} || true
