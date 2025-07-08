@@ -206,8 +206,8 @@ runs:
       with:
         name: ${{ steps.check.outputs.coverage_report }}
         path: |
-          $(pwd)/${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl/tests/coverage.json
-          $(pwd)/${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl/tests/.coverage
+          ${{ github.workspace }}/${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl/tests/coverage.json
+          ${{ github.workspace }}/${{ github.run_id }}/${{steps.uuid.outputs.id }}/nemo-rl/tests/.coverage
         include-hidden-files: true
 
     - name: Container shutdown

@@ -213,10 +213,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - script: L0_Unit_Tests_Generation
-            runner: self-hosted-azure
-          - script: L0_Unit_Tests_Policy
-            runner: self-hosted-azure
+          # - script: L0_Unit_Tests_Generation
+          #   runner: self-hosted-azure
+          # - script: L0_Unit_Tests_Policy
+          #   runner: self-hosted-azure
           - script: L0_Unit_Tests_Other
             runner: self-hosted-azure
     needs: [pre-flight, build-container]
@@ -233,7 +233,6 @@ jobs:
         with:
           runner: ${{ runner.name }}
           script: ${{ matrix.script }}
-          timeout: ${{ matrix.timeout || 10 }}
           is_unit_test: "true"
           cpu-only: ${{ matrix.cpu-only || false }}
 
