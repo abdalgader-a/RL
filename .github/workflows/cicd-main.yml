@@ -260,7 +260,7 @@ jobs:
                     (
                       (needs.doc-tests.result == 'skipped' || needs.doc-tests.result == 'success') &&
                       (needs.unit-tests.result == 'skipped' || needs.unit-tests.result == 'success') &&
-                      (needs.functional-tests.result == 'skpped' || needs.functional-tests.result == 'success')
+                      (needs.functional-tests.result == 'skipped' || needs.functional-tests.result == 'success')
                     )
                   ) &&
                   (needs.mypy-check.result == 'success' || true)
