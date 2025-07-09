@@ -17,3 +17,4 @@ set -xeuo pipefail # Exit immediately if a command exits with a non-zero status
 
 cd /opt/nemo-rl/docs
 uv run --no-sync coverage run -a --data-file=/opt/nemo-rl/tests/.coverage --source=/opt/nemo-rl/nemo_rl -m sphinx.cmd.build -b doctest . _build/doctest
+ls /opt/nemo-rl/tests
