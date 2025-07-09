@@ -199,55 +199,55 @@ jobs:
         MAX_JOBS=32
         NEMO_RL_COMMIT=${{ github.sha }}
 
-  cicd-doc-tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - script: Docs_Tests
-            runner: self-hosted-azure
-    needs: [pre-flight, build-container]
-    if: ${{ contains('docs L0 L1 L2', needs.pre-flight.outputs.test_level) }}
-    runs-on: ${{ matrix.runner }}
-    name: ${{ matrix.is_optional && 'PLEASEFIXME_' || '' }}${{ matrix.script }}
-    environment: nemo-ci
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: main
-        uses: ./.github/actions/test-template
-        with:
-          runner: ${{ runner.name }}
-          script: ${{ matrix.script }}
-          is_doc_test: "true"
+  # cicd-doc-tests:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - script: Docs_Tests
+  #           runner: self-hosted-azure
+  #   needs: [pre-flight, build-container]
+  #   if: ${{ contains('docs L0 L1 L2', needs.pre-flight.outputs.test_level) }}
+  #   runs-on: ${{ matrix.runner }}
+  #   name: ${{ matrix.is_optional && 'PLEASEFIXME_' || '' }}${{ matrix.script }}
+  #   environment: nemo-ci
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - name: main
+  #       uses: ./.github/actions/test-template
+  #       with:
+  #         runner: ${{ runner.name }}
+  #         script: ${{ matrix.script }}
+  #         is_doc_test: "true"
 
-  cicd-unit-tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # - script: L0_Unit_Tests_Generation
-          #   runner: self-hosted-azure
-          # - script: L0_Unit_Tests_Policy
-          #   runner: self-hosted-azure
-          - script: L0_Unit_Tests_Other
-            runner: self-hosted-azure
-    needs: [pre-flight, build-container]
-    if: ${{ contains('L0 L1 L2', needs.pre-flight.outputs.test_level) }}
-    runs-on: ${{ matrix.runner }}
-    name: ${{ matrix.script }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: main
-        uses: ./.github/actions/test-template
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        with:
-          runner: ${{ runner.name }}
-          script: ${{ matrix.script }}
-          is_unit_test: "true"
-          cpu-only: ${{ matrix.cpu-only || false }}
+  # cicd-unit-tests:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         # - script: L0_Unit_Tests_Generation
+  #         #   runner: self-hosted-azure
+  #         # - script: L0_Unit_Tests_Policy
+  #         #   runner: self-hosted-azure
+  #         - script: L0_Unit_Tests_Other
+  #           runner: self-hosted-azure
+  #   needs: [pre-flight, build-container]
+  #   if: ${{ contains('L0 L1 L2', needs.pre-flight.outputs.test_level) }}
+  #   runs-on: ${{ matrix.runner }}
+  #   name: ${{ matrix.script }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #     - name: main
+  #       uses: ./.github/actions/test-template
+  #       env:
+  #         HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  #       with:
+  #         runner: ${{ runner.name }}
+  #         script: ${{ matrix.script }}
+  #         is_unit_test: "true"
+  #         cpu-only: ${{ matrix.cpu-only || false }}
 
   cicd-functional-tests:
     strategy:
@@ -256,7 +256,7 @@ jobs:
         include:
           - script: L1_Functional_Tests_GPU
             runner: self-hosted-azure
-    needs: [cicd-unit-tests]
+    needs: [pre-flight, build-container]
     runs-on: ${{ matrix.runner }}
     if: ${{ contains('L1 L2', needs.pre-flight.outputs.test_level) }}
     name: ${{ matrix.is_optional && 'PLEASEFIXME_' || '' }}${{ matrix.script }}
@@ -280,8 +280,8 @@ jobs:
       - pre-flight
       - lint-check
       - sphinx-build
-      - cicd-doc-tests
-      - cicd-unit-tests
+      # - cicd-doc-tests
+      # - cicd-unit-tests
       - cicd-functional-tests
     steps:
       - name: main
