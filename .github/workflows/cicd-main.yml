@@ -323,10 +323,18 @@ jobs:
 
   Coverage:
     runs-on: ubuntu-latest
-    needs: [CI_QA_Gate]
+    needs:
+      - CI_QA_Gate
+      - cicd-doc-tests
+      - cicd-unit-tests
+      - cicd-functional-tests
     strategy:
       matrix:
-        flag: [doc-test, unit-test, e2e]
+        flag: ${{ fromJSON(
+          (needs.cicd-doc-tests.result != 'skipped' && '["doc-test"]' || '[]') +
+          (needs.cicd-unit-tests.result != 'skipped' && '["unit-test"]' || '[]') +
+          (needs.cicd-functional-tests.result != 'skipped' && '["e2e"]' || '[]')
+        ) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
