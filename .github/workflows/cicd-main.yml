@@ -331,11 +331,6 @@ jobs:
     strategy:
       matrix:
         flag: [doc-test, unit-test, e2e]
-    if: ${{
-      (matrix.flag == 'doc-test' && needs.cicd-doc-tests.result != 'skipped') ||
-      (matrix.flag == 'unit-test' && needs.cicd-unit-tests.result != 'skipped') ||
-      (matrix.flag == 'e2e' && needs.cicd-functional-tests.result != 'skipped')
-    }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -344,10 +339,22 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: coverage-${{ matrix.flag }}-*
+          fail-on-no-match: false
+
+      - name: Check if artifacts were downloaded
+        id: check-artifacts
+        run: |
+          if [ -d "coverage-${{ matrix.flag }}-*" ]; then
+            echo "artifacts-found=true" >> $GITHUB_OUTPUT
+            echo "Found coverage artifacts for ${{ matrix.flag }}"
+          else
+            echo "artifacts-found=false" >> $GITHUB_OUTPUT
+            echo "No coverage artifacts found for ${{ matrix.flag }}"
+          fi
 
       - name: Get total coverage of current branch
         shell: bash -x -e -u -o pipefail {0}
-        if: always()
+        if: ${{ steps.check-artifacts.outputs.artifacts-found == 'true' }}
         run: |
           pip install coverage
 
@@ -358,7 +365,13 @@ jobs:
           rm -rf coverage-*
           ls -al
 
+      - name: Skip coverage processing
+        if: ${{ steps.check-artifacts.outputs.artifacts-found == 'false' }}
+        run: |
+          echo "No coverage artifacts found for ${{ matrix.flag }}, skipping coverage processing"
+
       - name: Upload coverage reports to Codecov
+        if: ${{ steps.check-artifacts.outputs.artifacts-found == 'true' }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -366,6 +379,7 @@ jobs:
           flags: ${{ matrix.flag }}
 
       - name: Upload artifacts
+        if: ${{ steps.check-artifacts.outputs.artifacts-found == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.flag }}-aggregated
