@@ -23,3 +23,4 @@ time uv run --no-sync bash ./tests/functional/sft.sh
 # time uv run --no-sync bash ./tests/functional/dpo.sh
 # time uv run --no-sync bash ./tests/functional/eval.sh
 # time uv run --no-sync bash ./tests/functional/test_mcore_extra_installed_correctly.sh
+# time uv run --no-sync bash ./tests/functional/eval_async.sh
