@@ -328,6 +328,7 @@ jobs:
       - cicd-doc-tests
       - cicd-unit-tests
       - cicd-functional-tests
+    if: always()
     strategy:
       matrix:
         flag: [doc-test, unit-test, e2e]
