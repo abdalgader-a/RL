@@ -226,10 +226,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - script: L0_Unit_Tests_Generation
-          #   runner: self-hosted-azure
-          # - script: L0_Unit_Tests_Policy
-          #   runner: self-hosted-azure
+          - script: L0_Unit_Tests_Generation
+            runner: self-hosted-azure
+          - script: L0_Unit_Tests_Policy
+            runner: self-hosted-azure
           - script: L0_Unit_Tests_Other
             runner: self-hosted-azure
     needs: [pre-flight, build-container]
