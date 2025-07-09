@@ -330,11 +330,12 @@ jobs:
       - cicd-functional-tests
     strategy:
       matrix:
-        flag: ${{ fromJSON(
-          (needs.cicd-doc-tests.result != 'skipped' && '["doc-test"]' || '[]') +
-          (needs.cicd-unit-tests.result != 'skipped' && '["unit-test"]' || '[]') +
-          (needs.cicd-functional-tests.result != 'skipped' && '["e2e"]' || '[]')
-        ) }}
+        flag: [doc-test, unit-test, e2e]
+    if: ${{
+      (matrix.flag == 'doc-test' && needs.cicd-doc-tests.result != 'skipped') ||
+      (matrix.flag == 'unit-test' && needs.cicd-unit-tests.result != 'skipped') ||
+      (matrix.flag == 'e2e' && needs.cicd-functional-tests.result != 'skipped')
+    }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
