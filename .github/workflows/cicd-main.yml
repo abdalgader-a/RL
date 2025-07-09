@@ -232,7 +232,7 @@ jobs:
             runner: self-hosted-azure
           - script: L0_Unit_Tests_Other
             runner: self-hosted-azure
-    needs: [pre-flight, build-container]
+    needs: [pre-flight, build-container, cicd-doc-tests]
     if: ${{ contains('L0 L1 L2', needs.pre-flight.outputs.test_level) }}
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.script }}
@@ -256,7 +256,7 @@ jobs:
         include:
           - script: L1_Functional_Tests_GPU
             runner: self-hosted-azure
-    needs: [pre-flight, build-container]
+    needs: [pre-flight, build-container, cicd-unit-tests]
     runs-on: ${{ matrix.runner }}
     if: ${{ contains('L1 L2', needs.pre-flight.outputs.test_level) }}
     name: ${{ matrix.is_optional && 'PLEASEFIXME_' || '' }}${{ matrix.script }}
