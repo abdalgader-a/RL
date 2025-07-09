@@ -204,7 +204,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - script: Doc_Tests
+          - script: Docs_Tests
             runner: self-hosted-azure
     needs: [pre-flight, build-container]
     if: ${{ contains('docs L0 L1 L2', needs.pre-flight.outputs.test_level) }}
