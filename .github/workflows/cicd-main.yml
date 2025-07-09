@@ -258,6 +258,7 @@ jobs:
             runner: self-hosted-azure
     needs: [cicd-unit-tests]
     runs-on: ${{ matrix.runner }}
+    if: ${{ contains('L1 L2', needs.pre-flight.outputs.test_level) }}
     name: ${{ matrix.is_optional && 'PLEASEFIXME_' || '' }}${{ matrix.script }}
     environment: nemo-ci
     steps:
