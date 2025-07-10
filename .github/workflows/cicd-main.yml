@@ -362,7 +362,7 @@ jobs:
           ls -al .
           ls -al coverage-*/
           coverage combine --keep $(ls coverage-*/.coverage)
-          coverage report -i
+          coverage report -i --show-missing
           rm -rf coverage-*
           ls -al
 
