@@ -803,7 +803,8 @@ class MegatronPolicyWorker:
                     )
                 else:
                     data_iterator = batch.make_microbatch_iterator(mbs)
-                    data_iterator_len = local_gbs // mbs
+                    # Add 1 to the data iterator length to account for the last microbatch
+                    data_iterator_len = (local_gbs + (mbs - 1)) // mbs
 
                 rerun_state_machine = get_rerun_state_machine()
                 while rerun_state_machine.should_run_forward_backward(data_iterator):
@@ -1006,7 +1007,10 @@ class MegatronPolicyWorker:
             data_iterator_len = data.get_microbatch_iterator_dynamic_shapes_len()
         else:
             mb_iterator = data.make_microbatch_iterator(logprob_batch_size)
-            data_iterator_len = max(1, data.size // logprob_batch_size)
+            # Add 1 to the data iterator length to account for the last microbatch
+            data_iterator_len = max(
+                1, (data.size + (logprob_batch_size - 1)) // logprob_batch_size
+            )
         micro_batch_size = logprob_batch_size
 
         forward_backward_func = get_forward_backward_func()
