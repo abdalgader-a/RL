@@ -550,11 +550,8 @@ class BatchedDataDict(UserDict, Generic[DictT]):
     ) -> Iterator["SlicedDataDict"]:
         """Make an iterator over the batch that yields microbatches of size microbatch_size."""
         bsize = self.size
-        assert bsize % microbatch_size == 0, (
-            f"Data dict size ({bsize}) is not a multiple of the provided microbatch size ({microbatch_size})"
-        )
         for i in range(0, bsize, microbatch_size):
-            yield self.slice(i, i + microbatch_size)
+            yield self.slice(i, min(i + microbatch_size, bsize))
 
     @property
     def size(self) -> int:
