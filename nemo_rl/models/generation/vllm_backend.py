@@ -15,6 +15,7 @@ import os
 from typing import Any, Iterable, Optional
 
 import torch
+from torch.multiprocessing.reductions import rebuild_cuda_tensor
 
 try:
     import vllm  # noqa: F401
@@ -152,7 +153,8 @@ class VllmInternalWorkerExtension:
                 # Extract packed tensor from IPC handle
                 dtype_to_packed_tensor = {}
                 for dtype, tensor_handle in all_handles:
-                    func, args = tensor_handle
+                    func = rebuild_cuda_tensor
+                    args = tensor_handle[0]
                     list_args = list(args)
                     list_args[6] = device_id
                     tensor = func(*list_args)
@@ -178,7 +180,8 @@ class VllmInternalWorkerExtension:
             else:
                 # Process each handle to get the tensor
                 for name, handle in name_and_handle_list:
-                    func, args = handle
+                    func = rebuild_cuda_tensor
+                    args = handle[0]
                     list_args = list(args)
                     list_args[6] = device_id
                     tensor = func(*list_args)
