@@ -706,6 +706,7 @@ class MegatronPolicyWorker:
         self.refit_param_info_mcore = None
         self.local_key_to_global_keys = None
         ## used for streaming update inference engine weights
+        self._refit_offset_info = []  # used for tensor packing case
         self._held_gather_buffer = None
 
     def is_alive(self):
@@ -1338,11 +1339,14 @@ class MegatronPolicyWorker:
 
     # Temporary fix, 'keys' is a kwarg due to some sort of ray bug
     @torch.no_grad()
-    def get_weights_ipc_handles(self, *, keys: list[str]) -> dict[str, Any]:
+    def get_weights_ipc_handles(
+        self, *, keys: list[str], refit_idx: int
+    ) -> dict[str, Any]:
         """Get IPC handles for the requested Megatron model weights.
 
         Args:
             keys: List of parameter names to get handles for
+            refit_idx: Index of the refit step, used for tensor packing case
         Returns:
             Dict mapping device UUID to list of (mapped_key, handle) tuples
         """
@@ -1412,7 +1416,33 @@ class MegatronPolicyWorker:
             # Store reference to prevent garbage collection
             self._held_gather_buffer = packed_tensors
 
-            serialized = (pack_tensor_for_ipc, all_handles, tensor_metadata)
+            # Choose how to serialize the tensor packing info
+            if refit_idx >= len(self._refit_offset_info):
+                # add record and send full tensor_metadata
+                assert refit_idx == len(self._refit_offset_info), (
+                    f"refit_idx {refit_idx} should be equal to len(self._refit_offset_info) {len(self._refit_offset_info)}"
+                )
+                self._refit_offset_info.append(tensor_metadata)
+                serialized = (pack_tensor_for_ipc, all_handles, tensor_metadata)
+            else:
+                # check if the tensor_metadata is the same as the record
+                is_equal = True
+                record = self._refit_offset_info[refit_idx]
+                if len(record) != len(tensor_metadata):
+                    is_equal = False
+                else:
+                    for key, offset in tensor_metadata.items():
+                        if key not in record or record[key] != offset:
+                            is_equal = False
+                            break
+
+                if is_equal:
+                    # only pass refit_idx to minimize data transfer
+                    serialized = (pack_tensor_for_ipc, all_handles, None)
+                else:
+                    # update record and send full tensor_metadata
+                    self._refit_offset_info[refit_idx] = tensor_metadata
+                    serialized = (pack_tensor_for_ipc, all_handles, tensor_metadata)
         else:
             all_handles = []
             for key, tensor in gathered_hf_params.items():
