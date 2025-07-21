@@ -161,7 +161,6 @@ class VllmInternalWorkerExtension:
                     tensor = func(*list_args)
                     dtype_to_packed_tensor[dtype] = tensor
 
-                # Unpack tensor to weights using pre-calculated offsets
                 weights = []
                 dtype_to_offset = defaultdict(lambda: 0)
                 for key in list_keys:
