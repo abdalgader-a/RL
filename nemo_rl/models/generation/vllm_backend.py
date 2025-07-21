@@ -166,10 +166,20 @@ class VllmInternalWorkerExtension:
                 dtype_to_offset = defaultdict(lambda: 0)
                 for key in list_keys:
                     shape, dtype, size = self.state_dict_info[key]
-                    weights.append((key, dtype_to_packed_tensor[dtype][dtype_to_offset[dtype]:dtype_to_offset[dtype]+size].view(*shape)))
+                    weights.append(
+                        (
+                            key,
+                            dtype_to_packed_tensor[dtype][
+                                dtype_to_offset[dtype] : dtype_to_offset[dtype] + size
+                            ].view(*shape),
+                        )
+                    )
                     dtype_to_offset[dtype] += size
 
-                expected_sizes = {dtype: tensor.numel() for dtype, tensor in dtype_to_packed_tensor.items()}
+                expected_sizes = {
+                    dtype: tensor.numel()
+                    for dtype, tensor in dtype_to_packed_tensor.items()
+                }
                 assert dtype_to_offset == expected_sizes, (
                     f"Packed tensor size mismatch: expected sizes from keys list {expected_sizes} != actual packed tensor sizes {dtype_to_offset}. "
                     f"This indicates the keys list order doesn't match the order used when packing tensors."
