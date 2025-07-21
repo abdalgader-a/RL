@@ -417,7 +417,11 @@ def refit_policy_generation(
         policy_generation.prepare_for_generation(tags=["weights"])
 
     # Create a context manager that does nothing when timer is None
-    timer_context = timer.time("prepare_for_generation/refit_policy_generation") if timer is not None else nullcontext()
+    timer_context = (
+        timer.time("prepare_for_generation/transfer_and_update_weights")
+        if timer is not None
+        else nullcontext()
+    )
     with timer_context:
         # update weights
         update_success = False
