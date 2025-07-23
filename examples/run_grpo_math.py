@@ -246,20 +246,49 @@ def main() -> None:
         master_config,
     ) = setup(config, tokenizer, dataset, val_dataset)
 
-    grpo_train(
-        policy,
-        policy_generation,
-        dataloader,
-        val_dataloader,
-        tokenizer,
-        loss_fn,
-        task_to_env,
-        val_task_to_env,
-        logger,
-        checkpointer,
-        grpo_state,
-        master_config,
-    )
+    # Check if async mode is enabled
+    async_config = config.get("async_grpo", {})
+    if async_config and async_config.get("enable_async", False):
+        # Import async_grpo_train only when needed
+        from nemo_rl.algorithms.async_grpo import async_grpo_train
+
+        print("🚀 Running async GRPO training")
+
+        # Run async GRPO training
+        async_grpo_train(
+            policy=policy,
+            policy_generation=policy_generation,
+            dataloader=dataloader,
+            val_dataloader=val_dataloader,
+            tokenizer=tokenizer,
+            loss_fn=loss_fn,
+            task_to_env=task_to_env,
+            val_task_to_env=val_task_to_env,
+            logger=logger,
+            checkpointer=checkpointer,
+            grpo_save_state=grpo_state,
+            master_config=master_config,
+            buffer_size=async_config.get("buffer_size", 100),
+            max_trajectory_age_steps=async_config.get("max_trajectory_age_steps", 3),
+        )
+    else:
+        print("🚀 Running synchronous GRPO training")
+
+        # Run standard GRPO training
+        grpo_train(
+            policy,
+            policy_generation,
+            dataloader,
+            val_dataloader,
+            tokenizer,
+            loss_fn,
+            task_to_env,
+            val_task_to_env,
+            logger,
+            checkpointer,
+            grpo_state,
+            master_config,
+        )
 
 
 if __name__ == "__main__":
