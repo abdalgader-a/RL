@@ -16,4 +16,5 @@
 set -xeuo pipefail # Exit immediately if a command exits with a non-zero status
 
 cd /opt/nemo-rl
-uv run --no-sync bash -x ./tests/run_unit.sh unit/models/generation/ --cov=nemo_rl --cov-report=term-missing --cov-report=json
+uv run --no-sync bash -x ./tests/run_unit.sh unit/models/generation/ --cov=nemo_rl --cov-report=term-missing --cov-report=json -m "not mcore"
+uv run --extra mcore bash -x ./tests/run_unit.sh unit/models/generation/ --cov=nemo_rl --cov-append --cov-report=term-missing --cov-report=json -m mcore

@@ -22,11 +22,8 @@ from collections import defaultdict
 from typing import (
     Any,
     AsyncGenerator,
-    Dict,
-    List,
     NotRequired,
     Optional,
-    Tuple,
     TypedDict,
     Union,
     cast,
@@ -349,6 +346,16 @@ class VllmGenerationWorker:
             self.llm = AsyncLLM.from_engine_args(AsyncEngineArgs(**llm_kwargs))
         else:
             self.llm = vllm.LLM(**llm_kwargs)
+
+        # will be initialized in post_init
+        # used in update_weights_from_ipc_handles
+        self.vllm_device_ids = None
+
+    def post_init(self):
+        self.vllm_device_ids = self.report_device_id()
+
+    async def post_init_async(self):
+        self.vllm_device_ids = await self.report_device_id_async()
 
     def init_collective(
         self, rank_prefix: int, ip: str, port: int, world_size: int
@@ -1014,6 +1021,14 @@ class VllmGenerationWorker:
 
         return cast(list[str], list_of_worker_results)
 
+    def prepare_refit_info(self, state_dict_info: dict[str, Any]) -> None:
+        """Prepare the info for refit."""
+        self.llm.collective_rpc("prepare_refit_info", args=(state_dict_info,))
+
+    async def prepare_refit_info_async(self, state_dict_info: dict[str, Any]) -> None:
+        """Async version of prepare_refit_info."""
+        await self.llm.collective_rpc("prepare_refit_info", args=(state_dict_info,))
+
     def update_weights_from_ipc_handles(self, ipc_handles: dict[str, Any]) -> bool:
         """Update weights from IPC handles by delegating to the vLLM Worker implementation.
 
@@ -1033,9 +1048,37 @@ class VllmGenerationWorker:
                     "update_weights_from_ipc_handles cannot be used with async_engine=True. Use update_weights_from_ipc_handles_async instead."
                 )
 
-            result_or_coro = self.llm.collective_rpc(
-                "update_weights_from_ipc_handles", args=(ipc_handles,)
-            )
+            if self.tensor_parallel_size == 1:
+                # UniProcExecutor
+                assert len(self.vllm_device_ids) == 1
+                result_or_coro = self.llm.collective_rpc(
+                    "update_weights_from_local_ipc_handles",
+                    args=(ipc_handles[self.vllm_device_ids[0]],),
+                )
+            else:
+                """
+                DO NOT USE VLLM's collective_rpc: This code causes duplicate IPC data transfer across Ray workers,
+                leading to unnecessary network serialization overhead and potential performance degradation.
+
+                result_or_coro = self.llm.collective_rpc(
+                    "update_weights_from_global_ipc_handles", args=(ipc_handles,)
+                )
+                """
+                ray_worker_outputs = []
+                # MultiProcExecutor
+                for worker, device_id in zip(
+                    self.llm.llm_engine.model_executor.workers, self.vllm_device_ids
+                ):
+                    ray_worker_outputs.append(
+                        worker.execute_method.remote(
+                            "update_weights_from_local_ipc_handles",
+                            ipc_handles[device_id],
+                        )
+                    )
+
+                # Gather the results
+                result_or_coro = ray.get(ray_worker_outputs)
+
             worker_result = result_or_coro[0]
 
             if not worker_result:
@@ -1072,8 +1115,9 @@ class VllmGenerationWorker:
                     "update_weights_from_ipc_handles_async can only be used with async_engine=True. Use update_weights_from_ipc_handles instead."
                 )
 
+            # TODO: switch to update_weights_from_local_ipc_handles for better performance once collectively report_device_id is supported in asyncLLM initialization
             result_or_coro = await self.llm.collective_rpc(
-                "update_weights_from_ipc_handles", args=(ipc_handles,)
+                "update_weights_from_global_ipc_handles", args=(ipc_handles,)
             )
 
             if asyncio.iscoroutine(result_or_coro):
@@ -1096,7 +1140,7 @@ class VllmGenerationWorker:
             traceback.print_exc()
             return False
 
-    def update_weights_from_collective(self, info: dict[str, Any]) -> bool:
+    def update_weights_from_collective(self) -> bool:
         """Update the model weights from collective communication."""
         try:
             assert self.llm is not None, (
@@ -1109,7 +1153,7 @@ class VllmGenerationWorker:
                 )
 
             result_or_coro = self.llm.collective_rpc(
-                "update_weights_from_collective", args=(info,)
+                "update_weights_from_collective", args=tuple()
             )
             worker_result = result_or_coro[0]
 
@@ -1126,7 +1170,7 @@ class VllmGenerationWorker:
             traceback.print_exc()
             return False
 
-    async def update_weights_from_collective_async(self, info: dict[str, Any]) -> bool:
+    async def update_weights_from_collective_async(self) -> bool:
         """Async version of update_weights_from_collective."""
         try:
             assert self.llm is not None, (
@@ -1139,7 +1183,7 @@ class VllmGenerationWorker:
                 )
 
             result_or_coro = await self.llm.collective_rpc(
-                "update_weights_from_collective", args=(info,)
+                "update_weights_from_collective", args=tuple()
             )
 
             if asyncio.iscoroutine(result_or_coro):
@@ -1329,11 +1373,11 @@ class VllmGeneration(GenerationInterface):
         )
 
         # It's necessary to set env_vars here to ensure that vllm non-leader workers also have these env_vars
-        # Disable NCCL SHM if training and generation are not co-located: https://github.com/NVIDIA-NeMo/RL/issues/564
+        # Explicitly set NCCL_CUMEM_ENABLE to 1 to avoid the P2P initialization error for PyNCCLCommunicator.
+        # See https://github.com/NVIDIA-NeMo/RL/issues/564 for more details.
         env_vars = {}
         if not self.cfg["colocated"]["enabled"]:
-            env_vars["NCCL_SHM_DISABLE"] = "1"
-            env_vars["NCCL_P2P_DISABLE"] = "1"
+            os.environ["NCCL_CUMEM_ENABLE"] = "1"
 
         # Check if we need parallelism-aware worker group creation
         if self.model_parallel_size > 1:
@@ -1359,6 +1403,10 @@ class VllmGeneration(GenerationInterface):
                 env_vars=env_vars,
             )
 
+        # Call some collective rpc functions in VllmGenerationWorker when initializing the vLLM engine
+        # This is necessary for async engine to work
+        self._post_init()
+
         # Number of data parallel groups is the number of tied worker groups
         self.dp_size = self.worker_group.dp_size
 
@@ -1370,7 +1418,7 @@ class VllmGeneration(GenerationInterface):
 
     def _get_tied_worker_bundle_indices(
         self, cluster: RayVirtualCluster
-    ) -> List[Tuple[int, List[int]]]:
+    ) -> list[tuple[int, list[int]]]:
         """Calculate bundle indices for tensor and pipeline parallel workers.
 
         Handles both unified placement groups (for cross-node model parallelism) and
@@ -1393,7 +1441,7 @@ class VllmGeneration(GenerationInterface):
 
             def get_node_bundles(
                 pg: PlacementGroup,
-            ) -> Dict[str, List[int]]:
+            ) -> dict[str, list[int]]:
                 # Retrieve mapping from node ID to bundle indices from a placement group.
                 try:
                     pg_table = ray.util.placement_group_table(pg)
@@ -1403,7 +1451,7 @@ class VllmGeneration(GenerationInterface):
                         "Failed to retrieve bundle/node mapping from placement group"
                     ) from e
 
-                node_bundles: Dict[str, List[int]] = defaultdict(list)
+                node_bundles: dict[str, list[int]] = defaultdict(list)
                 for bundle_idx, node_id in bundle_to_node.items():
                     node_bundles[node_id].append(bundle_idx)
                 for bundles in node_bundles.values():
@@ -1412,7 +1460,7 @@ class VllmGeneration(GenerationInterface):
 
             def allocate_worker_groups(
                 pg: PlacementGroup, tp_size: int, pp_size: int
-            ) -> List[Tuple[int, List[int]]]:
+            ) -> list[tuple[int, list[int]]]:
                 # Allocate worker groups for TP and PP training, assuming all nodes have identical bundle counts.
 
                 # Retrieve both bundle mapping and per-node bundles
@@ -1442,12 +1490,12 @@ class VllmGeneration(GenerationInterface):
                 node_idx = {nid: idx for idx, nid in enumerate(sorted_nodes)}
 
                 # Flatten bundles in node order
-                flat: List[int] = []
+                flat: list[int] = []
                 for nid in sorted_nodes:
                     flat.extend(node_bundles[nid])
 
                 # Slice into groups and assign logical index
-                groups: List[Tuple[int, List[int]]] = []
+                groups: list[tuple[int, list[int]]] = []
                 for i in range(num_groups):
                     slice_ = flat[
                         i * model_parallel_size : (i + 1) * model_parallel_size
@@ -1490,6 +1538,19 @@ class VllmGeneration(GenerationInterface):
             "report_device_id_async"
             if self.cfg["vllm_cfg"]["async_engine"]
             else "report_device_id"
+        )
+        # Use run_all_workers_single_data for methods that don't need data
+        futures = self.worker_group.run_all_workers_single_data(
+            method_name, run_rank_0_only_axes=["tensor_parallel", "pipeline_parallel"]
+        )
+        # Wait for all futures to complete
+        results = ray.get(futures)
+        return results
+
+    def _post_init(self):
+        # Choose the appropriate method based on async_engine setting
+        method_name = (
+            "post_init_async" if self.cfg["vllm_cfg"]["async_engine"] else "post_init"
         )
         # Use run_all_workers_single_data for methods that don't need data
         futures = self.worker_group.run_all_workers_single_data(
@@ -1855,7 +1916,26 @@ class VllmGeneration(GenerationInterface):
             print(f"Error during policy shutdown: {e}")
             return False
 
-    def update_weights(self, ipc_handles: dict[str, Any]) -> bool:
+    def prepare_refit_info(self, state_dict_info: dict[str, Any]) -> None:
+        """Prepare the info for refit."""
+        # Choose the appropriate method based on async_engine setting
+        method_name = (
+            "prepare_refit_info_async"
+            if self.cfg["vllm_cfg"]["async_engine"]
+            else "prepare_refit_info"
+        )
+
+        # Use run_all_workers_single_data to send data to all workers
+        futures = self.worker_group.run_all_workers_single_data(
+            method_name,
+            state_dict_info=state_dict_info,
+            run_rank_0_only_axes=["tensor_parallel", "pipeline_parallel"],
+        )
+
+        # Wait for all futures to complete
+        ray.get(futures)
+
+    def update_weights_from_ipc_handles(self, ipc_handles: dict[str, Any]) -> bool:
         """Update weights of the policy using IPC handles, considering tensor parallelism.
 
         For tp > 1, only the leader in each tensor parallel tied worker group will update weights.
@@ -1899,9 +1979,7 @@ class VllmGeneration(GenerationInterface):
             print(f"Error during update weights: {e}")
             return False
 
-    def update_weights_from_collective(
-        self, info: dict[str, Any]
-    ) -> list[ray.ObjectRef]:
+    def update_weights_from_collective(self) -> list[ray.ObjectRef]:
         """Update weights of the policy using collective communication."""
         if not self.worker_group or not self.worker_group.workers:
             raise RuntimeError("Worker group is not initialized")
@@ -1913,10 +1991,9 @@ class VllmGeneration(GenerationInterface):
             else "update_weights_from_collective"
         )
 
-        # Use run_all_workers_single_data to send data to all workers
+        # Use run_all_workers_single_data for methods that don't need data
         futures = self.worker_group.run_all_workers_single_data(
             method_name,
-            info=info,
             run_rank_0_only_axes=["tensor_parallel", "pipeline_parallel"],
         )
 
