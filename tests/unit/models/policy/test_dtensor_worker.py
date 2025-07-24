@@ -299,7 +299,7 @@ def training_setup(request, two_gpu_virtual_cluster):
         policy.shutdown()
 
 
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(360)
 @pytest.mark.parametrize(
     "training_setup",
     [

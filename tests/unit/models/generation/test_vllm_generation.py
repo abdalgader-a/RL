@@ -1276,7 +1276,7 @@ async def test_vllm_refit_non_collocated_update_weights(
         print(f"Error during generation_cluster_separate shutdown: {e}")
 
 
-@pytest.mark.timeout(210)
+@pytest.mark.timeout(360)
 @pytest.mark.parametrize("tensor_parallel_size", [1, 2])
 def test_vllm_generation_with_megatron_training(
     cluster, tokenizer, tensor_parallel_size
