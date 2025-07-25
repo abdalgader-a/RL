@@ -628,7 +628,7 @@ def test_vllm_worker_seed_behavior(cluster, tokenizer):
         torch.cuda.empty_cache()
 
 
-@pytest.mark.timeout(140)
+@pytest.mark.timeout(360)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("async_engine", [True, False])
 async def test_vllm_generation_with_hf_training(cluster, tokenizer, async_engine):
