@@ -159,12 +159,8 @@ def policy_setup(two_gpu_virtual_cluster, tiny_llama_model_path):
     policy.shutdown()
 
 
-<<<<<<< HEAD
-@pytest.mark.timeout(360)
-=======
 @pytest.mark.hf_gated
-@pytest.mark.timeout(180)
->>>>>>> origin/main
+@pytest.mark.timeout(360)
 def test_lm_policy_init(policy_setup):
     policy = policy_setup
 
