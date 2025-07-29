@@ -125,6 +125,11 @@ from nemo_rl.models.policy.utils import (
 TokenizerType = TypeVar("TokenizerType", bound=PreTrainedTokenizerBase)
 
 
+# Dynamo may fail at cached_autotune when there's already a cache with different order of node_bundles.
+# This is a workaround. See https://github.com/pytorch/pytorch/issues/153791 for more details.
+torch._inductor.config.autotune_local_cache = False
+
+
 def setup_megatron_model(
     policy_cfg: PolicyConfig,
     cfg: ConfigContainer,
