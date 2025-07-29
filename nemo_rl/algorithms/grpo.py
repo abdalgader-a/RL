@@ -761,7 +761,14 @@ def grpo_train(
         }
         metrics.update(train_results["all_mb_metrics"])
         for k, v in metrics.items():
-            if k in {"lr", "wd", "reward", "global_valid_seqs", "global_valid_toks", "mean_prompt_length"}:
+            if k in {
+                "lr",
+                "wd",
+                "reward",
+                "global_valid_seqs",
+                "global_valid_toks",
+                "mean_prompt_length",
+            }:
                 metrics[k] = np.mean(v).item()
             else:
                 metrics[k] = np.sum(v).item()
@@ -795,8 +802,17 @@ def grpo_train(
         # Display total time first, separately
         total_time = timing_metrics.get("total_step_time", 0)
 
-        total_num_gpus = master_config["cluster"]["num_nodes"] * master_config["cluster"]["gpus_per_node"]
-        metrics.update({"throughput_per_gpu": metrics["total_num_tokens"] / total_time / total_num_gpus})
+        total_num_gpus = (
+            master_config["cluster"]["num_nodes"]
+            * master_config["cluster"]["gpus_per_node"]
+        )
+        metrics.update(
+            {
+                "throughput_per_gpu": metrics["total_num_tokens"]
+                / total_time
+                / total_num_gpus
+            }
+        )
 
         print(f"  • Total step time: {total_time:.2f}s")
 
