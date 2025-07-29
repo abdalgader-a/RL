@@ -67,6 +67,7 @@ from nemo_rl.models.policy.utils import (
     import_class_from_path,
     is_vllm_v1_engine_enabled,
     sliding_window_overwrite,
+    get_handle_from_tensor,
 )
 from nemo_rl.utils.native_checkpoint import (
     load_checkpoint,
@@ -1186,8 +1187,6 @@ class DTensorPolicyWorker:
 
     @torch.no_grad()
     def get_weights_ipc_handles(self, keys: Iterable[str]) -> dict[str, Any]:
-        from torch.multiprocessing.reductions import reduce_tensor
-
         assert self._held_sharded_state_dict_reference is not None, (
             "prepare_weights_for_ipc must be called before get_weights_ipc_handles"
         )
@@ -1217,7 +1216,7 @@ class DTensorPolicyWorker:
         # Create handles for the tensors
         all_handles = []
         for key, p in converted_params.items():
-            handle = reduce_tensor(p.detach())
+            handle = get_handle_from_tensor(p)
             all_handles.append((key, handle))
 
         # (pack_tensor_for_ipc: bool, handles: list)
