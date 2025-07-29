@@ -63,11 +63,11 @@ from nemo_rl.models.policy.interfaces import (
 from nemo_rl.models.policy.utils import (
     configure_expandable_segments,
     get_gpu_info,
+    get_handle_from_tensor,
     get_runtime_env_for_policy_worker,
     import_class_from_path,
     is_vllm_v1_engine_enabled,
     sliding_window_overwrite,
-    get_handle_from_tensor,
 )
 from nemo_rl.utils.native_checkpoint import (
     load_checkpoint,

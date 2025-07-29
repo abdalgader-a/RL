@@ -119,9 +119,9 @@ from nemo_rl.models.policy.interfaces import (
 from nemo_rl.models.policy.utils import (
     configure_expandable_segments,
     get_gpu_info,
+    get_handle_from_tensor,
     get_megatron_checkpoint_dir,
     get_runtime_env_for_policy_worker,
-    get_handle_from_tensor,
 )
 
 TokenizerType = TypeVar("TokenizerType", bound=PreTrainedTokenizerBase)
