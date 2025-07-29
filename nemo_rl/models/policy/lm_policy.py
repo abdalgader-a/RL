@@ -84,7 +84,7 @@ class Policy(ColocatablePolicyInterface, GenerationInterface):
                 "or set policy.dtensor_cfg.enabled=true to use DTensor training backend."
             )
             worker_builder_cls = (
-                "nemo_rl.models.policy.dtensor_policy_worker.DTensorPolicyWorker"
+                "nemo_rl.models.policy.dtensor_policy_worker.DTensorPolicyWorkerV2"
             )
             tp_size = config["dtensor_cfg"]["tensor_parallel_size"]
             cp_size = config["dtensor_cfg"]["context_parallel_size"]
