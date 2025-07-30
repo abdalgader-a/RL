@@ -18,6 +18,13 @@ import yaml
 
 from nemo_rl.models.megatron.community_import import export_model_from_megatron
 
+""" NOTE: this script requires mcore. Make sure to launch with the mcore extra:
+uv run --extra mcore python examples/converters/convert_megatron_to_hf.py \
+  --config results/<path_to_chkp>/config.yaml \
+  --megatron-ckpt-path results/<path_to_chkp>/weights/iter_xxxxx \
+  --hf-ckpt-path results/<path_to_hf_chkp>/hf
+"""
+
 
 def parse_args():
     """Parse command line arguments."""
