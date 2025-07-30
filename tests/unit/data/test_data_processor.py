@@ -14,22 +14,20 @@
 
 import os
 import sys
+from collections import defaultdict
 
 from datasets import Dataset
 
 abspath = os.path.abspath(__file__)
 sys.path.append("/".join(abspath.split("/")[:-4]))
 
+from examples.run_grpo_math import hf_data_processor
 from nemo_rl.algorithms.utils import get_tokenizer
 from nemo_rl.data.datasets import AllTaskProcessedDataset
-from nemo_rl.data.interfaces import TaskDataSpec
+from nemo_rl.data.hf_datasets.openmathinstruct2 import OpenMathInstruct2Dataset
+from nemo_rl.data.interfaces import TaskDataProcessFnCallable, TaskDataSpec
 from nemo_rl.data.processors import math_data_processor
 from nemo_rl.models.policy import TokenizerConfig
-
-basic_tokenizer_test_config: TokenizerConfig = {
-    "name": "Qwen/Qwen2.5-Math-1.5B-Instruct",
-    "chat_template": "default",
-}
 
 
 def test_math_data_processor():
@@ -40,7 +38,12 @@ def test_math_data_processor():
         ]
     )
 
-    tokenizer = get_tokenizer(basic_tokenizer_test_config)
+    tokenizer = get_tokenizer(
+        TokenizerConfig(
+            name="Qwen/Qwen2.5-Math-1.5B-Instruct",
+            chat_template="default",
+        )
+    )
 
     math_task_spec = TaskDataSpec(
         task_name="math",
@@ -58,3 +61,48 @@ def test_math_data_processor():
 
     assert dataset[0]["extra_env_info"]["ground_truth"] == "answer1"
     assert dataset[1]["extra_env_info"]["ground_truth"] == "answer2"
+
+
+def test_hf_data_processor():
+    # Initialize dataset
+    data = OpenMathInstruct2Dataset()
+
+    # Setup tokenizer
+    tokenizer = get_tokenizer(
+        TokenizerConfig(
+            name="meta-llama/Llama-3.2-1B-Instruct",
+            chat_template="default",
+        )
+    )
+
+    # Configure task specification
+    math_task_spec = TaskDataSpec(
+        task_name="math",
+        prompt_file=f"{os.path.dirname(abspath)}/../../../examples/prompts/cot.txt",
+        system_prompt_file=None,
+    )
+
+    task_data_processors: dict[str, tuple[TaskDataSpec, TaskDataProcessFnCallable]] = (
+        defaultdict(lambda: (math_task_spec, hf_data_processor))
+    )
+    task_data_processors["math"] = (math_task_spec, hf_data_processor)
+
+    dataset = AllTaskProcessedDataset(
+        dataset=data.formatted_ds["train"],
+        tokenizer=tokenizer,
+        default_task_data_spec=math_task_spec,
+        task_data_processors=task_data_processors,
+        max_seq_length=128,
+    )
+
+    def assert_start_single_bos(token_ids: list[int]) -> None:
+        assert token_ids[0] == tokenizer.bos_token_id, (
+            f"Expected BOS token at the start of the message, but got {token_ids[0]}"
+        )
+        assert token_ids[1] != tokenizer.bos_token_id, (
+            f"Expected non-BOS token at the second position of the message, but got {token_ids[1]}"
+        )
+
+    for i in range(10):
+        for message_log in dataset[i]["message_log"]:
+            assert_start_single_bos(message_log["token_ids"].numpy().tolist())
