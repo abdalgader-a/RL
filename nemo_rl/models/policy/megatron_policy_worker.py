@@ -116,6 +116,7 @@ from nemo_rl.models.policy.interfaces import (
     ReferenceLogprobOutputSpec,
 )
 from nemo_rl.models.policy.utils import (
+    configure_dynamo_cache,
     configure_expandable_segments,
     get_gpu_info,
     get_megatron_checkpoint_dir,
@@ -123,11 +124,6 @@ from nemo_rl.models.policy.utils import (
 )
 
 TokenizerType = TypeVar("TokenizerType", bound=PreTrainedTokenizerBase)
-
-
-# Dynamo may fail at cached_autotune when there's already a cache with different order of node_bundles.
-# This is a workaround. See https://github.com/pytorch/pytorch/issues/153791 for more details.
-torch._inductor.config.autotune_local_cache = False
 
 
 def setup_megatron_model(
@@ -380,6 +376,10 @@ class MegatronPolicyWorker:
                 "Reward models are not yet supported with the Megatron backend, this issue is "
                 "tracked in https://github.com/NVIDIA-NeMo/RL/issues/720"
             )
+
+        # Disable dynamo autotune_local_cache to avoid crash when there's already a cache
+        # with different order of node_bundles
+        configure_dynamo_cache()
 
         # Only enable expandable_segments on Hopper and newer architectures (compute capability 9.x+)
         configure_expandable_segments()
