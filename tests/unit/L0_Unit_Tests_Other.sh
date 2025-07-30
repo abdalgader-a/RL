@@ -16,5 +16,12 @@
 set -xeuo pipefail # Exit immediately if a command exits with a non-zero status
 
 cd /opt/nemo-rl
-uv run --no-sync bash -x ./tests/run_unit.sh --ignore=unit/models/generation/ --ignore=unit/models/policy/ --cov=nemo_rl --hf-gated
-uv run --extra mcore bash -x ./tests/run_unit.sh --ignore=unit/models/generation/ --ignore=unit/models/policy/ --cov=nemo_rl --cov-append --cov-report=term-missing --cov-report=json --hf-gated --mcore-only
+uv run --no-sync bash -x ./tests/run_unit.sh unit/ --ignore=unit/models/generation/ --ignore=unit/models/policy/ --cov=nemo_rl --cov-report=term-missing --cov-report=json --hf-gated
+
+exit_code=$(pytest tests/unit/ --ignore=unit/models/generation/ --ignore=unit/models/policy/ --collect-only --hf-gated --mcore-only -q >/dev/null 2>&1; echo $?)
+if [ $exit_code -eq 5 ]; then
+    echo "No mcore tests to run"
+    exit 0
+else
+    uv run --extra mcore bash -x ./tests/run_unit.sh unit/ --ignore=unit/models/generation/ --ignore=unit/models/policy/ --cov=nemo_rl --cov-append --cov-report=term-missing --cov-report=json --hf-gated --mcore-only
+fi
