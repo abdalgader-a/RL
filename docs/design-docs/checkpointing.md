@@ -22,7 +22,7 @@ rsync -ahP $CKPT_DIR/policy/tokenizer ${CKPT_DIR}-hf/
 
 ## Converting Megatron Checkpoints to Hugging Face Format
 
-For models that were originally trained using the Megatron-LM backend, a separate converter is available to convert Megatron checkpoints to Hugging Face format. This script requires Megatron-Core, so make sure to launch the conversion with the `mcore` extra, for example,
+For models that were originally trained using the Megatron-LM backend, a separate converter is available to convert Megatron checkpoints to Hugging Face format. This script requires Megatron-Core, so make sure to launch the conversion with the `mcore` extra. For example,
 
 ```sh
 CKPT_DIR=results/sft/step_10
