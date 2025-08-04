@@ -419,7 +419,7 @@ If you have a model saved in Megatron format, you can use the following command 
 # Example for a GRPO checkpoint at step 170
 uv run --extra mcore python examples/converters/convert_megatron_to_hf.py \
     --config results/grpo/step_170/config.yaml \
-    --dcp-ckpt-path results/grpo/step_170/policy/weights/iter_0000000 \
+    --megatron-ckpt-path results/grpo/step_170/policy/weights/iter_0000000 \
     --hf-ckpt-path results/grpo/hf
 ```
 
